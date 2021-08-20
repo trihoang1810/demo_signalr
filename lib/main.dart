@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:signalr_core/signalr_core.dart';
 
-import 'package:signalr_client/http_connection_options.dart';
-import 'package:signalr_client/hub_connection.dart';
-import 'package:signalr_client/hub_connection_builder.dart';
+const url = "https://phong-kiem-tra-chat-luong-sp.herokuapp.com/hub";
 
-Future<String> token() async {
-  final tokentemp =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJHaWEiLCJqdGkiOiI5MjkyMTZiOC0yYmMzLTQxMWEtOGE0Zi1mMzRhYTcxNDYyZGUiLCJpYXQiOjE2MjM3NTMwMTMsInJvbCI6ImFwaV9hY2Nlc3MiLCJpZCI6IjE1MDNkMWE2LTk3NDYtNDg5Zi1hYWI2LTY2YWVjZmQ3MDA1MSIsIm5iZiI6MTYyMzc1MzAxMywiZXhwIjoxNjIzNzU2NjEzLCJpc3MiOiJ3ZWJBcGkiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjUwMDAvIn0.8MGi4OLXOye8EkzRTKMTfEOttvdBsR_KLULfhjF1o_8";
-  return tokentemp;
-}
-
-const url = "https://phong-kiem-tra-chat-luong-sp.herokuapp.com/hub/";
 ReliMonitorData reliMonitorData;
 void main() {
   runApp(MyApp());
@@ -39,17 +31,18 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   HubConnection hubConnection;
+  List list = ['a', 'b', 'c', 'd', 'e', 'f'];
   @override
   void initState() {
     super.initState();
     _initSignalR();
     reliMonitorData = ReliMonitorData(
-        thoiGianGiuNapDong: 0,
-        thoiGianGiuNapMo: 0,
-        soLanDongNapCaiDat: 0,
-        soLanDongNapHienTai: 0,
-        running: false,
-        alarm: false);
+        thoiGianGiuNapDong: "0",
+        thoiGianGiuNapMo: "0",
+        soLanDongNapCaiDat: "0",
+        soLanDongNapHienTai: "0",
+        running: false.toString(),
+        alarm: false.toString());
   }
 
   @override
@@ -61,26 +54,29 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: Column(
           children: [
-            Text(reliMonitorData.alarm.toString()),
-            Text(reliMonitorData.running.toString()),
-            Text(reliMonitorData.soLanDongNapCaiDat.toString()),
-            Text(reliMonitorData.soLanDongNapHienTai.toString()),
-            Text(reliMonitorData.thoiGianGiuNapDong.toString()),
-            Text(reliMonitorData.thoiGianGiuNapMo.toString()),
+            Text(list[0].toString()),
+            Text(list[1].toString()),
+            Text(list[2].toString()),
+            Text(list[3].toString()),
+            Text(list[4].toString()),
+            Text(list[5].toString()),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          print(hubConnection.state.toString());
-          hubConnection.serverTimeoutInMilliseconds = 10000000;
-          hubConnection.state == HubConnectionState.Disconnected
-              ? await hubConnection.start()
+          print('--> đang tìm kết nối');
+          print('Kết nối là ${hubConnection.state}');
+          hubConnection.state == HubConnectionState.disconnected
+              ? await hubConnection
+                  .start()
+                  .onError((error, stackTrace) => print(error))
               : await hubConnection.stop();
-          print(hubConnection.state.toString());
+          print('--> kết nối thành công?');
+          print('Kết nối hiện tại là ${hubConnection.state}');
         },
-        tooltip: 'Increment',
-        child: hubConnection.state == HubConnectionState.Disconnected
+        tooltip: 'Connect',
+        child: hubConnection.state == HubConnectionState.disconnected
             ? Icon(Icons.play_arrow)
             : Icon(Icons.stop),
       ),
@@ -88,23 +84,36 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _initSignalR() async {
-    hubConnection = HubConnectionBuilder()
-        .withUrl(url,
-            options: HttpConnectionOptions(
-                accessTokenFactory: () async => await token()))
-        .build();
+    hubConnection =
+        HubConnectionBuilder().withUrl(url).withAutomaticReconnect().build();
+    hubConnection.keepAliveIntervalInMilliseconds = 30000;
+    hubConnection.serverTimeoutInMilliseconds = 30000;
     hubConnection.onclose((error) => print(error));
-    hubConnection.on("MonitorReliability", monitorReliabilityHandlers);
+    hubConnection.on("MonitorReliability", _monitorReliabilityHandlers);
   }
 
-  void monitorReliabilityHandlers(List<Object> data) {
+  void _monitorReliabilityHandlers(List<Object> data) {
+    print(data.length);
+    print(data.first);
     reliMonitorData = ReliMonitorData(
-        soLanDongNapCaiDat: data[0],
-        soLanDongNapHienTai: data[1],
-        thoiGianGiuNapDong: data[2],
-        thoiGianGiuNapMo: data[3],
-        running: data[4],
-        alarm: data[5]);
+      soLanDongNapCaiDat: data[0].toString(),
+      soLanDongNapHienTai: data[1].toString(),
+      thoiGianGiuNapDong: data[2].toString(),
+      thoiGianGiuNapMo: data[3].toString(),
+      running: data[4].toString(),
+      alarm: data[5].toString(),
+    );
+    print(reliMonitorData.soLanDongNapCaiDat);
+    setState(() {
+      list.clear();
+      list.add(reliMonitorData.alarm.toString());
+      list.add(reliMonitorData.running.toString());
+      list.add(reliMonitorData.soLanDongNapCaiDat.toString());
+      list.add(reliMonitorData.soLanDongNapHienTai.toString());
+      list.add(reliMonitorData.thoiGianGiuNapDong.toString());
+      list.add(reliMonitorData.thoiGianGiuNapMo.toString());
+    });
+    print('thanh cong');
   }
 }
 
@@ -118,10 +127,10 @@ class ReliMonitorData {
     this.running,
   });
 
-  int soLanDongNapCaiDat;
-  int soLanDongNapHienTai;
-  int thoiGianGiuNapDong;
-  int thoiGianGiuNapMo;
-  bool alarm;
-  bool running;
+  String soLanDongNapCaiDat;
+  String soLanDongNapHienTai;
+  String thoiGianGiuNapDong;
+  String thoiGianGiuNapMo;
+  String alarm;
+  String running;
 }
