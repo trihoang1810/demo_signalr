@@ -2,7 +2,7 @@ import 'package:demo_signalr/model.dart';
 import 'package:flutter/material.dart';
 import 'package:signalr_core/signalr_core.dart';
 import 'package:demo_signalr/widget.dart';
-const url = "https://phong-kiem-tra-chat-luong-sp.herokuapp.com/hub";
+const url = "https://xxx-yyy.herokuapp.com/hub";
 
 ReliMonitorData reliMonitorData;
 void main() {
